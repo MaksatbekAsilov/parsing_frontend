@@ -1,10 +1,10 @@
 <template>
-  <div class="container">
+  <div class="container" :class="isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'">
     <h2 class="title">Выберите источник</h2>
 
     <!-- Выпадающий список -->
     <div class="select-wrapper">
-      <select v-model="selectedSource" @change="fetchPrices" class="select">
+      <select v-model="selectedSource" @change="fetchPrices" class="select" :class="isDark ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-100 border-gray-300 text-black'">
         <option value="vbr">VBR</option>
         <option value="investing">Investing</option>
         <option value="bitinfo">BitInfo</option>
@@ -14,7 +14,7 @@
     <!-- Контейнер для таблицы с прокруткой вниз -->
     <div class="table-container">
       <table v-if="prices.length" class="table">
-        <thead>
+        <thead class="sticky-header" :class="isDark ? 'bg-gray-800 text-white' : 'bg-red-100 text-red-900'">
           <tr>
             <th>Валюта</th>
             <th>Цена</th>
@@ -22,7 +22,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="price in prices" :key="price.currency">
+          <tr v-for="(price, index) in prices" :key="price.currency" :class="{ 'dark-row': isDark && index % 2 === 1 }">
             <td>{{ price.currency }}</td>
             <td>{{ price.price.toFixed(2) }}$</td>
             <td>{{ formatDate(price.timestamp) }}</td>
@@ -37,7 +37,7 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import axios from "axios";
 import { format } from "date-fns";
 
@@ -45,6 +45,7 @@ export default {
   setup() {
     const selectedSource = ref("vbr");
     const prices = ref([]);
+    const isDark = inject("isDark");
 
     // Загрузка данных
     const fetchPrices = async () => {
@@ -65,7 +66,7 @@ export default {
     // Загружаем данные при старте
     fetchPrices();
 
-    return { selectedSource, prices, fetchPrices, formatDate };
+    return { selectedSource, prices, fetchPrices, formatDate, isDark };
   },
 };
 </script>
@@ -95,9 +96,9 @@ export default {
 .select {
   width: 100%;
   padding: 10px;
-  border: 2px solid #e3342f;
   border-radius: 8px;
   font-size: 16px;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* Таблица с прокруткой вниз */
@@ -115,10 +116,9 @@ export default {
 }
 
 /* Фиксируем заголовки */
-thead {
+.sticky-header {
   position: sticky;
   top: 0;
-  background: #f8d7da;
   z-index: 10;
 }
 
@@ -129,15 +129,15 @@ th, td {
   border-bottom: 1px solid #ddd;
 }
 
-/* Цвета заголовков */
-th {
-  color: #b71c1c;
-  font-weight: bold;
-}
-
 /* Чередование строк */
 tbody tr:nth-child(even) {
   background: #fce4e4;
+}
+
+/* Темные четные строки в темной теме */
+.dark-row {
+  background: #8b0000 !important; /* Темно-красный фон */
+  color: black !important; /* Черный текст */
 }
 
 /* Подсветка при наведении */
@@ -154,28 +154,27 @@ tbody tr:hover {
 
 /* Стилизация вертикального ползунка */
 .table-container::-webkit-scrollbar {
-  width: 8px; /* Ширина ползунка */
+  width: 12px;
 }
 
 .table-container::-webkit-scrollbar-track {
-  background: #ffebee; /* Цвет фона */
+  background: var(--scrollbar-track, #ffebee);
   border-radius: 10px;
 }
 
 .table-container::-webkit-scrollbar-thumb {
-  background: #e3342f; /* Цвет ползунка */
+  background: var(--scrollbar-thumb, #e3342f);
   border-radius: 10px;
-  border: 2px solid #ffebee; /* Окантовка */
+  border: 3px solid var(--scrollbar-track, #ffebee);
 }
 
 .table-container::-webkit-scrollbar-thumb:hover {
-  background: #b71c1c; /* Цвет ползунка при наведении */
+  background: var(--scrollbar-thumb-hover, #b71c1c);
 }
 
 /* Для Firefox */
 .table-container {
-  scrollbar-color: #e3342f #ffebee;
+  scrollbar-color: var(--scrollbar-thumb, #e3342f) var(--scrollbar-track, #ffebee);
   scrollbar-width: thin;
 }
-
 </style>
