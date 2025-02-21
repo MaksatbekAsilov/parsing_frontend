@@ -11,7 +11,7 @@
       </select>
     </div>
 
-    <!-- Контейнер для таблицы с прокруткой вниз -->
+    <!-- Контейнер для таблицы -->
     <div class="table-container">
       <table v-if="prices.length" class="table">
         <thead class="sticky-header" :class="isDark ? 'bg-gray-800 text-white' : 'bg-red-100 text-red-900'">
@@ -37,8 +37,8 @@
 </template>
 
 <script>
-import { ref, inject } from "vue";
-import axios from "axios";
+import { ref, inject, onMounted } from "vue";
+import api from "@/api"; // Используем общий API с настройками токена
 import { format } from "date-fns";
 
 export default {
@@ -47,13 +47,26 @@ export default {
     const prices = ref([]);
     const isDark = inject("isDark");
 
-    // Загрузка данных
+    // Функция загрузки данных
     const fetchPrices = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("Нет токена, пользователь не авторизован");
+        return;
+      }
+
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/prices/${selectedSource.value}`);
+        const response = await api.get(`/prices/${selectedSource.value}`, {
+          headers: { Authorization: `Bearer ${token}` }, // Передаем JWT
+        });
         prices.value = response.data;
       } catch (error) {
         console.error("Ошибка загрузки данных:", error);
+        if (error.response && error.response.status === 401) {
+          alert("Сессия истекла, пожалуйста, войдите снова");
+          localStorage.removeItem("token");
+          window.location.href = "/login"; // Перенаправление на вход
+        }
         prices.value = [];
       }
     };
@@ -63,8 +76,8 @@ export default {
       return timestamp ? format(new Date(timestamp), "dd.MM.yyyy HH:mm:ss") : "Нет данных";
     };
 
-    // Загружаем данные при старте
-    fetchPrices();
+    // Загружаем данные при монтировании компонента
+    onMounted(fetchPrices);
 
     return { selectedSource, prices, fetchPrices, formatDate, isDark };
   },
@@ -72,14 +85,13 @@ export default {
 </script>
 
 <style scoped>
-/* Центрируем контейнер */
+/* Общие стили */
 .container {
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
 }
 
-/* Заголовок */
 .title {
   font-size: 24px;
   font-weight: bold;
@@ -87,12 +99,10 @@ export default {
   margin-bottom: 16px;
 }
 
-/* Обертка для select */
 .select-wrapper {
   margin-bottom: 12px;
 }
 
-/* Select */
 .select {
   width: 100%;
   padding: 10px;
@@ -101,7 +111,7 @@ export default {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* Таблица с прокруткой вниз */
+/* Таблица */
 .table-container {
   max-height: 400px;
   overflow-y: auto;
@@ -109,20 +119,17 @@ export default {
   border-radius: 10px;
 }
 
-/* Таблица */
 .table {
   width: 100%;
   border-collapse: collapse;
 }
 
-/* Фиксируем заголовки */
 .sticky-header {
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-/* Стили ячеек */
 th, td {
   padding: 10px;
   text-align: left;
@@ -134,13 +141,12 @@ tbody tr:nth-child(even) {
   background: #fce4e4;
 }
 
-/* Темные четные строки в темной теме */
+/* Темные строки в темной теме */
 .dark-row {
-  background: #8b0000 !important; /* Темно-красный фон */
-  color: black !important; /* Черный текст */
+  background: #8b0000 !important;
+  color: black !important;
 }
 
-/* Подсветка при наведении */
 tbody tr:hover {
   background: #ffebee;
 }
@@ -150,31 +156,5 @@ tbody tr:hover {
   text-align: center;
   color: gray;
   margin-top: 10px;
-}
-
-/* Стилизация вертикального ползунка */
-.table-container::-webkit-scrollbar {
-  width: 12px;
-}
-
-.table-container::-webkit-scrollbar-track {
-  background: var(--scrollbar-track, #ffebee);
-  border-radius: 10px;
-}
-
-.table-container::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, #e3342f);
-  border-radius: 10px;
-  border: 3px solid var(--scrollbar-track, #ffebee);
-}
-
-.table-container::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, #b71c1c);
-}
-
-/* Для Firefox */
-.table-container {
-  scrollbar-color: var(--scrollbar-thumb, #e3342f) var(--scrollbar-track, #ffebee);
-  scrollbar-width: thin;
 }
 </style>

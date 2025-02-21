@@ -115,7 +115,7 @@ const errorMessage = ref(null);
 // Получаем тему из App.vue
 const isDark = inject("isDark");
 
-// Функция конвертации валют
+// Функция конвертации валют с передачей JWT
 const convertCurrency = async () => {
   if (amount.value <= 0) {
     errorMessage.value = "Пожалуйста, введите сумму больше нуля.";
@@ -126,12 +126,23 @@ const convertCurrency = async () => {
   convertedPrice.value = null;
 
   try {
-    const response = await axios.post("http://127.0.0.1:8000/convert", {
-      from_currency: fromCurrency.value,
-      to_currency: toCurrency.value,
-      amount: parseFloat(amount.value),
-      source: selectedSource.value,
-    });
+    const token = localStorage.getItem("token"); // Получаем токен
+
+    const response = await axios.post(
+      "http://127.0.0.1:8000/convert",
+      {
+        from_currency: fromCurrency.value,
+        to_currency: toCurrency.value,
+        amount: parseFloat(amount.value),
+        source: selectedSource.value,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // Передаём токен в заголовке
+          "Content-Type": "application/json", // Указываем тип контента
+        },
+      }
+    );
 
     convertedPrice.value = response.data.converted_price.toFixed(2);
     rate.value = response.data.rate.toFixed(2);

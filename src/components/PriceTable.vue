@@ -53,11 +53,24 @@ export default {
     const isDark = inject("isDark");
 
     const fetchPrices = async () => {
+      const token = localStorage.getItem("token"); // Получаем JWT из localStorage
+      if (!token) {
+        console.error("Нет токена, пользователь не авторизован");
+        return;
+      }
+
       try {
-        const response = await api.get(`/prices/compare/${selectedCurrency.value}`);
+        const response = await api.get(`/prices/compare/${selectedCurrency.value}`, {
+          headers: { Authorization: `Bearer ${token}` }, // Передаём JWT-токен
+        });
         prices.value = response.data.prices;
       } catch (error) {
         console.error("Ошибка загрузки данных:", error);
+        if (error.response && error.response.status === 401) {
+          alert("Сессия истекла, пожалуйста, войдите снова");
+          localStorage.removeItem("token");
+          window.location.href = "/login"; // Перенаправляем на страницу входа
+        }
         prices.value = null;
       }
     };
